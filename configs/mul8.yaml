@@ -1,0 +1,68 @@
+# 8x8 unsigned multiplier.
+width: 8
+
+env:
+  # Deepest tree the observation tensor can represent. Edits that would need
+  # more reduction stages than this are masked out, so it also bounds the
+  # search space -- keep it comfortably above the starting trees' depth (4 for wallace, 4 for ilp).
+  max_stages: 16
+  episode_length: 250
+  # Where each episode starts, drawn at random per episode when several are
+  # listed.
+  initial_trees: [wallace, ilp]
+  area_weight: 1.0
+  delay_weight: 1.0
+
+agent:
+  lr: 1.0e-2
+  gamma: 0.08
+  batch_size: 64
+  buffer_size: 10000
+  learning_starts: 64
+  target_update: 250
+  eps_start: 0.9
+  eps_end: 0.10
+  eps_decay_steps: 500
+  grad_clip: 1.0
+  train_frequency: 1
+  # Q-network trunk, one entry per stage. This is ResNet-18; the observation is
+  # small, so something like [1, 1, 1] / [32, 64, 128] trains much faster and is
+  # often enough.
+  blocks: [2, 2, 2, 2]
+  channels: [64, 128, 256, 512]
+
+synthesis:
+  # Point RLMUL_LIBERTY at a Liberty file, e.g. the Nangate45 library shipped
+  # with OpenROAD-flow-scripts.
+  liberty: ${RLMUL_LIBERTY}
+  # Synthesising under several constraints keeps the reward from chasing a
+  # single operating point. These are ABC's target delays and are in
+  # PICOSECONDS (yosys: `abc -D <picoseconds>`); the delays reported in
+  # summary.json and train_log.csv are in nanoseconds. Values far below what the
+  # library can achieve all land in ABC's max-effort regime and produce the same
+  # netlist, so a useful spread has to straddle the achievable delay.
+  target_delays: [450, 500, 550, 600]
+  # Scratch space for synthesis jobs. Empty means the system temp directory.
+  # These are thousands of tiny short-lived jobs, so a tmpfs pays off:
+  # on Linux, set this to something under /dev/shm.
+  workdir:
+  timeout_s: 300
+  cache: ppa_cache.sqlite        # PPA memo under train.out_dir; empty disables it
+  retries: 1                     # tools fail transiently on a busy shared machine
+  # Tool executables, in case they are not on PATH.
+  yosys: yosys
+  sta: sta
+  # ABC's constraints. `driving_cell` must name a real cell in the library
+  # above -- BUF_X1 is Nangate45; change it when you change libraries.
+  driving_cell: BUF_X1
+  output_load: 10.0
+
+train:
+  total_steps: 250000
+  num_envs: 8                    # each env runs one synthesis job per target delay
+  device: auto
+  seed: 0
+  out_dir: runs/mul8
+  log_every: 20
+  checkpoint_every: 1000
+  max_seconds: 0                 # 0 = no wall-clock budget

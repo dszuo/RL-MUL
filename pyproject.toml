@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# The import package is `rlmul`: a hyphen is not a valid Python identifier.
+name = "rl-mul"
+version = "0.1.0"
+description = "Reinforcement learning for multiplier design"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["eda", "reinforcement-learning", "multiplier", "compressor-tree", "logic-synthesis"]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+dependencies = ["numpy>=1.21", "torch>=1.13", "pyyaml>=5.4"]
+
+[project.scripts]
+rlmul-train = "rlmul.train:main"
+
+[tool.setuptools.packages.find]
+include = ["rlmul*"]
